@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  final firstCamera = cameras.first;
+
+  runApp(MyApp(camera: firstCamera));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final CameraDescription camera;
+
+  const MyApp({super.key, required this.camera});
 
   @override
   Widget build(BuildContext context) {
@@ -14,23 +21,41 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const CameraScreen(),
+      home: CameraScreen(camera: camera),
     );
   }
 }
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final CameraDescription camera;
+
+  const CameraScreen({super.key, required this.camera});
 
   @override
   _CameraScreenState createState() => _CameraScreenState();
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  // カウント数を27からスタート
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
   int _count = 27;
 
-  // シャッターボタンが押された時にカウントを減らす
+  @override
+  void initState() {
+    super.initState();
+    _controller = CameraController(
+      widget.camera,
+      ResolutionPreset.high,
+    );
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _onShutterPressed() {
     setState(() {
       if (_count > 0) {
@@ -39,7 +64,6 @@ class _CameraScreenState extends State<CameraScreen> {
     });
   }
 
-  // フィルム交換ボタンが押された時にカウントを27に戻す
   void _onFilmChangePressed() {
     setState(() {
       _count = 27;
@@ -48,6 +72,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('fluttercamera'),
@@ -56,21 +82,32 @@ class _CameraScreenState extends State<CameraScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // カウント数を表示
+          FutureBuilder<void>(
+            future: _initializeControllerFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                return SizedBox(
+                  height: screenHeight / 5,
+                  child: CameraPreview(_controller),
+                );
+              } else {
+                return const Center(child: CircularProgressIndicator());
+              }
+            },
+          ),
+          const SizedBox(height: 20),
           Text(
             '残り枚数: $_count',
             style: const TextStyle(fontSize: 24),
           ),
           const SizedBox(height: 20),
-          // シャッターボタン
           ElevatedButton(
-            onPressed: _count > 0 ? _onShutterPressed : null,  // 0枚ならボタンを無効化
+            onPressed: _count > 0 ? _onShutterPressed : null,
             child: const Text('シャッター'),
           ),
           const SizedBox(height: 20),
-          // フィルム交換ボタン
           ElevatedButton(
-            onPressed: _count == 27 ? null : _onFilmChangePressed,  // 27枚ならボタンを無効化
+            onPressed: _count == 27 ? null : _onFilmChangePressed,
             child: const Text('フィルム交換'),
           ),
         ],
