@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 void main() async {
@@ -43,6 +41,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   int _count = 27;
+  bool _isTakingPicture = false; // 写真撮影中かどうかを管理する変数
 
   @override
   void initState() {
@@ -61,6 +60,8 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _onShutterPressed() async {
+    if (_isTakingPicture) return; // 写真撮影中の場合は処理を中断
+    _isTakingPicture = true; // 写真撮影を開始
     if (_count > 0) {
       try {
         await _initializeControllerFuture; // コントローラーが初期化されるまで待つ
@@ -91,6 +92,8 @@ class _CameraScreenState extends State<CameraScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('写真の撮影に失敗しました: $e')),
         );
+      } finally {
+        _isTakingPicture = false; // 写真撮影を終了
       }
     }
   }
@@ -133,12 +136,12 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: _count > 0 ? _onShutterPressed : null,
+            onPressed: _count > 0 && !_isTakingPicture ? _onShutterPressed : null,
             child: const Text('シャッター'),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: _count == 27 ? null : _onFilmChangePressed,
+            onPressed: _count == 27 ? null : _onFilmChangePressed, // ここを変更
             child: const Text('フィルム交換'),
           ),
         ],
