@@ -2,6 +2,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +45,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<void> _initializeControllerFuture;
   int _count = 27;
   bool _isTakingPicture = false; // 写真撮影中かどうかを管理する変数
+  List<String> _imagePaths = []; // 写真のパスを保存するリスト
 
   @override
   void initState() {
@@ -60,6 +64,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _onShutterPressed() async {
+    print('_onShutterPressed()が実行されました');
     if (_isTakingPicture) return; // 写真撮影中の場合は処理を中断
     _isTakingPicture = true; // 写真撮影を開始
     if (_count > 0) {
@@ -68,14 +73,25 @@ class _CameraScreenState extends State<CameraScreen> {
 
         // 写真を撮影
         final XFile image = await _controller.takePicture();
-
-        // 撮影した写真を表示する画面に遷移
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => DisplayPictureScreen(imageFile: image),
-          ),
-        );
-
+        print('写真の撮影に成功しました');
+        if (!kIsWeb) {
+          print('kIsWeb: $kIsWeb');
+          // 保存先のディレクトリを取得
+          final directory = await getExternalStorageDirectory();
+          print('getExternalStorageDirectory()が実行されました');
+          if (directory != null) {
+            // 保存先のファイルパスを生成
+            final String filePath =
+            path.join(directory.path, '${DateTime.now()}.png');
+            // 写真を指定した場所に保存
+            await image.saveTo(filePath);
+            print('写真の保存に成功しました: $filePath');
+            _imagePaths.add(filePath); // 写真のパスをリストに追加
+            print('_imagePathsに追加しました: $filePath');
+          } else {
+            print('directoryがnullです');
+          }
+        }
         // 残り枚数を減らす
         setState(() {
           _count--;
@@ -102,6 +118,17 @@ class _CameraScreenState extends State<CameraScreen> {
     setState(() {
       _count = 27;
     });
+  }
+
+  void _onTestButtonPressed() {
+    print('_onTestButtonPressed()が実行されました');
+    print('_imagePathsの内容: $_imagePaths');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageListScreen(imagePaths: _imagePaths),
+      ),
+    );
   }
 
   @override
@@ -141,37 +168,40 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: _count == 27 ? null : _onFilmChangePressed, // ここを変更
+            onPressed: _count == 27 ? null : _onFilmChangePressed,
             child: const Text('フィルム交換'),
           ),
+          const SizedBox(height: 20), // ここから追加
+          ElevatedButton(
+            onPressed: _onTestButtonPressed,
+            child: const Text('写真フォルダ'),
+          ), // ここまで追加
         ],
       ),
     );
   }
 }
 
-// 撮影した写真を表示する画面
-class DisplayPictureScreen extends StatelessWidget {
-  final XFile imageFile;
+// 写真一覧を表示する画面
+class ImageListScreen extends StatelessWidget {
+  final List<String> imagePaths;
 
-  const DisplayPictureScreen({super.key, required this.imageFile});
+  const ImageListScreen({super.key, required this.imagePaths});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('撮影した写真')),
-      body: Center(
-        child: FutureBuilder<Uint8List>(
-          future: imageFile.readAsBytes(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done &&
-                snapshot.hasData) {
-              return Image.memory(snapshot.data!);
-            } else {
-              return CircularProgressIndicator();
-            }
-          },
-        ),
+      appBar: AppBar(
+        title: const Text('撮影した写真一覧'),
+      ),
+      body: ListView.builder(
+        itemCount: imagePaths.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Image.file(File(imagePaths[index])),
+          );
+        },
       ),
     );
   }

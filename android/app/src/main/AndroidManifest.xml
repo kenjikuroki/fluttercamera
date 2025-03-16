@@ -4,6 +4,13 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- ストレージへの書き込み権限（Android 9 (API レベル 28) 以前用） -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- ストレージへの読み込み権限（Android 13 (API レベル 33) 以前用） -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- ストレージへのアクセス権限（Android 11 (API レベル 30) 以降用） -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
     <application
         android:label="fluttercamera"
         android:name="${applicationName}"
