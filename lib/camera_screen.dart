@@ -21,7 +21,8 @@ class _CameraScreenState extends State<CameraScreen> {
   int _count = 27;
   bool _isTakingPicture = false; // 写真撮影中かどうかを管理する変数
   List<String> _imagePaths = []; // 写真のパスを保存するリスト
-  String _appFolderName = "MyCameraApp";
+  late String _currentAppFolderName; // 現在使用中のアプリフォルダ名
+  List<String> _folderNames = [];
 
   @override
   void initState() {
@@ -31,29 +32,40 @@ class _CameraScreenState extends State<CameraScreen> {
       ResolutionPreset.high,
     );
     _initializeControllerFuture = _controller.initialize();
-    _createAppFolder(); // アプリのフォルダを作成する
+    _createNewAppFolder(); // アプリのフォルダを作成する
   }
-
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
-  // アプリ用のフォルダを作成する関数
-  Future<void> _createAppFolder() async {
+  // アプリ用の新しいフォルダを作成する関数
+  Future<void> _createNewAppFolder() async {
     final directory = await getExternalStorageDirectory();
     if (directory != null) {
-      final appFolder = Directory(path.join(directory.path, _appFolderName));
+      final String newFolderName =
+          'MyCameraApp_${DateTime.now().toString().replaceAll(':', '').replaceAll('-', '').replaceAll('.', '')}';
+      _folderNames.add(newFolderName);
+      print(_folderNames);
+      final appFolder = Directory(path.join(directory.path, newFolderName));
       if (!await appFolder.exists()) {
         await appFolder.create(recursive: true);
         print('フォルダを作成しました: ${appFolder.path}');
       } else {
         print('フォルダはすでに存在します: ${appFolder.path}');
       }
+      setState(() {
+        _currentAppFolderName = newFolderName;
+      });
     }
   }
-
+  void _onFilmChangePressed() {
+    setState(() {
+      _count = 27;
+    });
+    _createNewAppFolder();
+  }
   void _onShutterPressed() async {
     print('_onShutterPressed()が実行されました');
     if (_isTakingPicture) return; // 写真撮影中の場合は処理を中断
@@ -72,7 +84,7 @@ class _CameraScreenState extends State<CameraScreen> {
           print('getExternalStorageDirectory()が実行されました');
           if (directory != null) {
             // 写真を保存するフォルダのパスを取得
-            final appFolder = Directory(path.join(directory.path, _appFolderName));
+            final appFolder = Directory(path.join(directory.path, _currentAppFolderName));
             // 保存先のファイルパスを生成
             final String filePath = path.join(appFolder.path, '${DateTime.now()}.png');
             // 写真を指定した場所に保存
@@ -105,13 +117,6 @@ class _CameraScreenState extends State<CameraScreen> {
       }
     }
   }
-
-  void _onFilmChangePressed() {
-    setState(() {
-      _count = 27;
-    });
-  }
-
   void _onTestButtonPressed() {
     print('_onTestButtonPressed()が実行されました');
     print('_imagePathsの内容: $_imagePaths');
@@ -160,7 +165,7 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: _count == 27 ? null : _onFilmChangePressed,
+            onPressed: _onFilmChangePressed,
             child: const Text('フィルム交換'),
           ),
           const SizedBox(height: 20), // ここから追加

@@ -14,8 +14,8 @@ class ImageListScreen extends StatefulWidget {
 }
 
 class _ImageListScreenState extends State<ImageListScreen> {
-  String _appFolderName = "MyCameraApp";
   List<FileSystemEntity> _folders = [];
+  List<String> _folderNames = []; // フォルダ名を保持するリストを追加
 
   @override
   void initState() {
@@ -27,12 +27,16 @@ class _ImageListScreenState extends State<ImageListScreen> {
   Future<void> _loadFolders() async {
     final directory = await getExternalStorageDirectory();
     if (directory != null) {
-      final appFolder = Directory(path.join(directory.path, _appFolderName));
-      if (await appFolder.exists()) {
-        setState(() {
-          _folders = [appFolder]; // フォルダをリストに追加
-        });
-      }
+      // 全てのサブディレクトリを取得
+      final List<FileSystemEntity> entities = directory.listSync();
+      final List<Directory> subDirectories = entities.whereType<Directory>().toList();
+
+      // MyCameraAppで始まるフォルダだけを抽出
+      final List<Directory> appFolders = subDirectories.where((dir) => path.basename(dir.path).startsWith('MyCameraApp_')).toList();
+
+      setState(() {
+        _folders = appFolders; // フォルダをリストに追加
+      });
     }
   }
 
