@@ -40,6 +40,83 @@ class _ImageListScreenState extends State<ImageListScreen> {
     }
   }
 
+  // フォルダ内を表示する関数
+  void _navigateToFolder(FileSystemEntity folder) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FolderContentScreen(folder: folder),
+      ),
+    );
+  }
+
+  // 長押しで出すボトムメニュー
+  Widget _buildBottomSheet(FileSystemEntity folder) {
+    return SafeArea(
+      child: Wrap(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.black),
+            title: const Text('ゴミ箱へ移動'),
+            onTap: () {
+              Navigator.pop(context); // ボトムシート閉じる
+              _confirmDeleteFolder(folder);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.share),
+            title: const Text('共有'),
+            onTap: () {
+              Navigator.pop(context);
+              // 共有機能は必要なら実装してください
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 削除確認ダイアログ
+  void _confirmDeleteFolder(FileSystemEntity folder) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('確認'),
+        content: Text('フォルダ「${path.basename(folder.path)}」をゴミ箱へ移動しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // ダイアログ閉じる
+              await _deleteFolder(folder);
+            },
+            child: const Text('ゴミ箱に移動'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // フォルダ削除処理
+  Future<void> _deleteFolder(FileSystemEntity folder) async {
+    try {
+      if (await folder.exists()) {
+        await folder.delete(recursive: true);
+      }
+      await _loadFolders(); // 削除後にフォルダ一覧更新
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('フォルダ「${path.basename(folder.path)}」を削除しました。')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('フォルダ削除に失敗しました。')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,25 +127,23 @@ class _ImageListScreenState extends State<ImageListScreen> {
         itemCount: _folders.length,
         itemBuilder: (context, index) {
           final folder = _folders[index];
-          return ListTile(
-            title: Text(path.basename(folder.path)), // フォルダ名を表示
-            leading: const Icon(Icons.folder), // フォルダアイコン
-            onTap: () {
-              // フォルダがクリックされた時の処理
-              _navigateToFolder(folder);
+          return GestureDetector(
+            onLongPress: () {
+              showModalBottomSheet(
+                context: context,
+                builder: (context) => _buildBottomSheet(folder),
+              );
             },
+            child: ListTile(
+              title: Text(path.basename(folder.path)), // フォルダ名を表示
+              leading: const Icon(Icons.folder), // フォルダアイコン
+              onTap: () {
+                // フォルダがクリックされた時の処理
+                _navigateToFolder(folder);
+              },
+            ),
           );
         },
-      ),
-    );
-  }
-
-  // フォルダ内を表示する関数
-  void _navigateToFolder(FileSystemEntity folder) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FolderContentScreen(folder: folder),
       ),
     );
   }

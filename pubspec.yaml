@@ -10,9 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  camera: ^0.11.0 # カメラパッケージ
-  path_provider: ^2.1.1 # ファイルパス取得用パッケージ
-  path: ^1.9.0 # ファイルパス操作用パッケージ
+  camera: ^0.11.0
+  path_provider: ^2.1.1
+  path: ^1.9.0
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:
@@ -21,3 +22,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/film_icon_brown_image.png
