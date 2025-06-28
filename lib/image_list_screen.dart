@@ -134,13 +134,21 @@ class _ImageListScreenState extends State<ImageListScreen> {
                 builder: (context) => _buildBottomSheet(folder),
               );
             },
-            child: ListTile(
-              title: Text(path.basename(folder.path)), // フォルダ名を表示
-              leading: const Icon(Icons.folder), // フォルダアイコン
-              onTap: () {
-                // フォルダがクリックされた時の処理
-                _navigateToFolder(folder);
-              },
+            onTap: () {
+              _navigateToFolder(folder);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/film_icon_brown_image.png',
+                  width: MediaQuery.of(context).size.width * 0.8, // 画面幅の80%
+                  height: MediaQuery.of(context).size.width * 0.8, // 画面幅の80%
+                  fit: BoxFit.contain,
+                ),
+                Text(path.basename(folder.path)), // フォルダ名を表示
+              ],
             ),
           );
         },
